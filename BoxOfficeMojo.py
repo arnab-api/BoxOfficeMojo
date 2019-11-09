@@ -83,15 +83,15 @@ def getSingleWeekSummary(week):
     # print(week)
 
     return {
-        'range': rng,
-        'rank': rnk,
-        'weekly': weekly,
-        'lw': lw,
-        'theaters': theaters,
-        'change': change,
-        'avg': avg,
-        'todate': todate,
-        'week': week
+        'range'     : rng,
+        'rank'      : rnk,
+        'weekly'    : weekly,
+        'lw'        : lw,
+        'theaters'  : theaters,
+        'change'    : change,
+        'avg'       : avg,
+        'todate'    : todate,
+        'week'      : week
     }
 
 def performClick(element):
@@ -125,13 +125,13 @@ with open(path + '/0_summary.json', 'w') as f:
     json.dump(summary_json, f)
 print("saved summary")
 
-movie_data = {
-        "href": "/release/rl709199361/?ref_=bo_ydw_table_1",
-        "name": "the_avengers",
-        "world_wide": "$1,518,812,988",
-        "domestic": "$623,357,910",
-        "foreign": "$895,455,078"
-    }
+# movie_data = {
+#         "href": "/release/rl709199361/?ref_=bo_ydw_table_1",
+#         "name": "the_avengers",
+#         "world_wide": "$1,518,812,988",
+#         "domestic": "$623,357,910",
+#         "foreign": "$895,455,078"
+#     }
 
 # with open(path+"/0_summary.json") as f:
 #     summary_json = json.load(f)
