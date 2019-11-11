@@ -98,16 +98,15 @@ def performClick(element):
     driver.execute_script("arguments[0].click();", element)
 
 ##############################################################
-year = str(2011)
+year = str(2007)
 url = url_root + 'year/world/'+year+'/?grossesOption=totalGrosses'
 print("\n\n############### YEAR {} ###############\n\n".format(year))
 path = 'BoxOfficeMojo/'+year
 makeDirectory(path)
 
-driver = initialize(url)
 ##############################################################
 
-
+driver = initialize(url)
 table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
 
 html = table.get_attribute('innerHTML')
@@ -124,6 +123,8 @@ for movie in movie_elem:
 with open(path + '/0_summary.json', 'w') as f:
     json.dump(summary_json, f)
 print("saved summary")
+
+###################################################################################
 
 # movie_data = {
 #         "href": "/release/rl709199361/?ref_=bo_ydw_table_1",
@@ -143,7 +144,7 @@ first = True
 for i in range(0, len(summary_json)):
 
     movie_data = summary_json[i]
-    print("\n\n############### {} ###############\n\n".format(str(i+1) + "_" + movie_data['name']))
+    print("\n\n############### {} ############### {}/{}\n\n".format(str(i+1) + "_" + movie_data['name'], i+1, len(summary_json)))
 
 
     url = url_root + movie_data['href']
