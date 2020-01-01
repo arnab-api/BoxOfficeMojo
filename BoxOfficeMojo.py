@@ -98,7 +98,7 @@ def performClick(element):
     driver.execute_script("arguments[0].click();", element)
 
 ##############################################################
-year = str(2007)
+year = str(2017)
 url = url_root + 'year/world/'+year+'/?grossesOption=totalGrosses'
 print("\n\n############### YEAR {} ###############\n\n".format(year))
 path = 'BoxOfficeMojo/'+year
@@ -165,6 +165,12 @@ for i in range(0, len(summary_json)):
     
     try:
         time.sleep(1)
+
+        domestic = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[4]/div/div/table[1]/tbody/tr[3]/td[1]/a')
+        # print(domestic)
+        performClick(domestic)
+        driver.implicitly_wait(3)
+
         weekly = driver.find_element_by_link_text('Domestic Weekly')
         # weekly.click()
         performClick(weekly)
