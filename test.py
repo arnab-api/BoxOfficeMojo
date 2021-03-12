@@ -20,13 +20,6 @@ def simplify_string(inp):
 
     return inp
 
-def makeDirectory(path):
-    print("creating directory " + path)
-    try:
-        os.mkdir(path)
-    except FileExistsError:
-        pass
-
 def initialize(url, browser=None):
     if(browser == None):
         browser = webdriver.Chrome(PATH)
@@ -42,7 +35,7 @@ def getSingleMovieSummary(mov):
     # print(href)
 
     name = td_arr[1].find('a').contents[0].strip()
-    file_name = simplify_string(name)
+    name = simplify_string(name)
     # print(name)
 
     world_wide = td_arr[2].contents[0].strip()
@@ -57,7 +50,6 @@ def getSingleMovieSummary(mov):
     return {
         'href'      : href,
         'name'      : name,
-        'file_name' : file_name,
         'world_wide': world_wide,
         'domestic'  : domestic,
         'foreign'   : foreign
@@ -99,6 +91,18 @@ def getSingleWeekSummary(week):
 def performClick(element):
     driver.execute_script("arguments[0].click();", element)
 
+# summary_json = [
+#     {
+#         "href": "/releasegroup/gr3764736517/?ref_=bo_ydw_table_1",
+#         "name": "star_wars__episode_viii___the_last_jedi",
+#         "world_wide": "$1,332,539,889",
+#         "domestic": "$620,181,382",
+#         "foreign": "$712,358,507"
+#     }
+# ]
+
+
+
 def getInfo(text_arr, field, attr = 1):
     if(field not in text_arr):
         return ":("
@@ -123,47 +127,15 @@ def parseGeneralInfo(text_arr):
 
     return info
 
-##############################################################
-year = str(2016)
-url = url_root + 'year/world/'+year+'/?grossesOption=totalGrosses'
-print("\n\n############### YEAR {} ###############\n\n".format(year))
-path = 'BoxOfficeMojo/'+year
-makeDirectory(path)
-
-##############################################################
-
-driver = initialize(url)
-table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
-
-html = table.get_attribute('innerHTML')
-soup = BeautifulSoup(html, 'html.parser')
-movie_elem = soup.findAll('tr')
-movie_elem = movie_elem[1:]
-
-summary_json = []
-for movie in movie_elem:
-    data = getSingleMovieSummary(movie)
-    print(data)
-    summary_json.append(data)
-
-with open(path + '/0_summary.json', 'w') as f:
-    json.dump(summary_json, f)
-print("saved summary")
-
-###################################################################################
-
-# movie_data = {
-#         "href": "/release/rl709199361/?ref_=bo_ydw_table_1",
-#         "name": "the_avengers",
-#         "world_wide": "$1,518,812,988",
-#         "domestic": "$623,357,910",
-#         "foreign": "$895,455,078"
-#     }
-
-# with open(path+"/0_summary.json") as f:
-#     summary_json = json.load(f)
-
-print("\n\n############### Scraping Movies ###############\n\n")
+summary_json = [
+    {
+        "href": "/releasegroup/gr2104709637/?ref_=bo_ydw_table_50",
+        "name": "from_vegas_to_macau_iii",
+        "world_wide": "$181,732,879",
+        "domestic": "-",
+        "foreign": "$181,732,879"
+    }
+]
 
 first = True
 
@@ -217,7 +189,6 @@ def get_gen_info(driver):
 
     return gen_info
 
-
 for i in range(0, len(summary_json)):
 
     movie_data = summary_json[i]
@@ -239,7 +210,7 @@ for i in range(0, len(summary_json)):
     #     driver.implicitly_wait(3)
 
     #     first = False
-
+    
     weekly_income = get_weekly_income(driver)
     gen_info = get_gen_info(driver)
 
@@ -247,8 +218,5 @@ for i in range(0, len(summary_json)):
         "General Info"  : gen_info,
         "Weekly Income" : weekly_income 
     }
-
     print(movie_info)
 
-    with open(path + '/' + str(i+1) + "_" + movie_data['file_name'] +'.json', 'w') as f:
-        json.dump(movie_info, f)
