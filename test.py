@@ -10,7 +10,8 @@ import json
 import re
 import os
 
-PATH = "/home/arnab/Codes/Libs/chromedriver_linux64/chromedriver"
+# PATH = "/home/arnab/Codes/Libs/chromedriver_linux64/chromedriver"
+PATH = "/home/arnab/Codes/00_Libs/chromedriver_linux64/chromedriver"
 url_root = "https://www.boxofficemojo.com/"
 driver = None
 
@@ -129,65 +130,94 @@ def parseGeneralInfo(text_arr):
 
 summary_json = [
     {
-        "href": "/releasegroup/gr2104709637/?ref_=bo_ydw_table_50",
-        "name": "from_vegas_to_macau_iii",
-        "world_wide": "$181,732,879",
-        "domestic": "-",
-        "foreign": "$181,732,879"
+        "href": "/releasegroup/gr588927493/?ref_=bo_ydw_table_42",
+        "name": "Jupiter Ascending",
+        "file_name": "jupiter_ascending",
+        "world_wide": "$183,887,723",
+        "domestic": "$47,387,723",
+        "foreign": "$136,500,000"
     }
 ]
 
 first = True
 
-import datetime
-def get_weekly_income(driver):
-    try:
-        time.sleep(1)
+def click_domestic(driver, counter = 0):
+    if(counter == 10):
+        print("Could not find domestic")
+        return False
 
+    try:
+        time.sleep(2)
         domestic = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[4]/div/div/table[1]/tbody/tr[3]/td[1]/a')
         # print(domestic)
         performClick(domestic)
         driver.implicitly_wait(3)
+        return True
+
+    except:
+        print("Maybe connection problem (could not find domestic option) --- trying again < try :: {} >".format(counter))
+        driver.refresh()
+        return click_domestic(driver, counter+1)
+
+
+import datetime
+def get_weekly_income(driver):
+    try:
+        time.sleep(2)
 
         weekly = driver.find_element_by_link_text('Domestic Weekly')
         # weekly.click()
         performClick(weekly)
         driver.implicitly_wait(3)
+
+        table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
+        html = table.get_attribute('innerHTML')
+        soup = BeautifulSoup(html, 'html.parser')
+
+        week_elem = soup.findAll('tr')
+        week_elem = week_elem[1:]
+        # print(week.prettify())
+
+        weekly_income = []
+        for week in week_elem:
+            data = getSingleWeekSummary(week)
+            print(data)
+            weekly_income.append(data)
+
+        return weekly_income
+
     except:
         print("This movie does not have weekly information available")
         return "N/A -- checked on {}".format(datetime.datetime.now())
 
 
-    table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
-    html = table.get_attribute('innerHTML')
-    soup = BeautifulSoup(html, 'html.parser')
 
-    week_elem = soup.findAll('tr')
-    week_elem = week_elem[1:]
-    # print(week.prettify())
+def get_gen_info(driver, counter = 0):
+    if(counter == 10):
+        print("could not get any information :( --- skipping for now")
+        return "N/A -- checked on {}".format(datetime.datetime.now())
 
-    weekly_income = []
-    for week in week_elem:
-        data = getSingleWeekSummary(week)
-        print(data)
-        weekly_income.append(data)
+    time.sleep(2)
 
-    return weekly_income
+    try:
+        gen_info_table = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[3]/div[4]')
+        gen_html = gen_info_table.get_attribute('innerHTML')
+        gen_soup = BeautifulSoup(gen_html, 'html.parser')
+        # print(gen_soup.prettify())
+        text_arr = gen_soup.findAll(text=True)
+        # print(text_arr)
+        for i in range(len(text_arr)):
+            text_arr[i] = text_arr[i].strip()
+            # print(i, text_arr[i].strip())
 
-def get_gen_info(driver):
-    gen_info_table = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[3]/div[4]')
-    gen_html = gen_info_table.get_attribute('innerHTML')
-    gen_soup = BeautifulSoup(gen_html, 'html.parser')
-    # print(gen_soup.prettify())
-    text_arr = gen_soup.findAll(text=True)
-    # print(text_arr)
-    for i in range(len(text_arr)):
-        text_arr[i] = text_arr[i].strip()
-        # print(i, text_arr[i].strip())
+        gen_info = parseGeneralInfo(text_arr)
 
-    gen_info = parseGeneralInfo(text_arr)
-
-    return gen_info
+        return gen_info
+    
+    except:
+        print("Maybe connection problem --- trying again < try :: {} >".format(counter))
+        driver.refresh()
+        return get_gen_info(driver, counter + 1)
 
 for i in range(0, len(summary_json)):
 
@@ -211,12 +241,25 @@ for i in range(0, len(summary_json)):
 
     #     first = False
     
-    weekly_income = get_weekly_income(driver)
-    gen_info = get_gen_info(driver)
+    try:
+        clicked_domestic = click_domestic(driver)
+        if(clicked_domestic == False):
+            print("Error: Could not get Domestic tab -- skipping this movie for now")
+            continue
 
-    movie_info = {
-        "General Info"  : gen_info,
-        "Weekly Income" : weekly_income 
-    }
-    print(movie_info)
+        gen_info = get_gen_info(driver)
+        weekly_income = get_weekly_income(driver)
+
+        movie_info = {
+            "General Info"  : gen_info,
+            "Weekly Income" : weekly_income 
+        }
+
+        print(movie_info)
+
+        # with open(path + '/' + str(i+1) + "_" + movie_data['file_name'] +'.json', 'w') as f:
+        #     json.dump(movie_info, f)
+    
+    except:
+        print("Some unknown error occured -- skipping this movie")
 

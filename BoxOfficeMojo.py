@@ -10,7 +10,8 @@ import json
 import re
 import os
 
-PATH = "/home/arnab/Codes/Libs/chromedriver_linux64/chromedriver"
+# PATH = "/home/arnab/Codes/Libs/chromedriver_linux64/chromedriver"
+PATH = "/home/arnab/Codes/00_Libs/chromedriver_linux64/chromedriver"
 url_root = "https://www.boxofficemojo.com/"
 driver = None
 
@@ -119,136 +120,178 @@ def parseGeneralInfo(text_arr):
         genres[i] = genres[i].strip()
     info["Genres"] = genres
     info["In Release"] = getInfo(text_arr, "In Release")[0]
-    info["Widest Release"] = getInfo(text_arr, "Opening")[0]
+    info["Widest Release"] = getInfo(text_arr, "Widest Release")[0]
 
     return info
 
-##############################################################
-year = str(2016)
-url = url_root + 'year/world/'+year+'/?grossesOption=totalGrosses'
-print("\n\n############### YEAR {} ###############\n\n".format(year))
-path = 'BoxOfficeMojo/'+year
-makeDirectory(path)
+def click_domestic(driver, counter = 0):
+    if(counter == 10):
+        print("Could not find domestic")
+        return False
 
-##############################################################
-
-driver = initialize(url)
-table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
-
-html = table.get_attribute('innerHTML')
-soup = BeautifulSoup(html, 'html.parser')
-movie_elem = soup.findAll('tr')
-movie_elem = movie_elem[1:]
-
-summary_json = []
-for movie in movie_elem:
-    data = getSingleMovieSummary(movie)
-    print(data)
-    summary_json.append(data)
-
-with open(path + '/0_summary.json', 'w') as f:
-    json.dump(summary_json, f)
-print("saved summary")
-
-###################################################################################
-
-# movie_data = {
-#         "href": "/release/rl709199361/?ref_=bo_ydw_table_1",
-#         "name": "the_avengers",
-#         "world_wide": "$1,518,812,988",
-#         "domestic": "$623,357,910",
-#         "foreign": "$895,455,078"
-#     }
-
-# with open(path+"/0_summary.json") as f:
-#     summary_json = json.load(f)
-
-print("\n\n############### Scraping Movies ###############\n\n")
-
-first = True
-
-import datetime
-def get_weekly_income(driver):
     try:
-        time.sleep(1)
-
+        time.sleep(2)
         domestic = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[4]/div/div/table[1]/tbody/tr[3]/td[1]/a')
         # print(domestic)
         performClick(domestic)
         driver.implicitly_wait(3)
+        return True
+
+    except:
+        print("Maybe connection problem (could not find domestic option) --- trying again < try :: {} >".format(counter))
+        driver.refresh()
+        return click_domestic(driver, counter+1)
+
+
+import datetime
+def get_weekly_income(driver):
+    try:
+        time.sleep(2)
 
         weekly = driver.find_element_by_link_text('Domestic Weekly')
         # weekly.click()
         performClick(weekly)
         driver.implicitly_wait(3)
+
+        table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
+        html = table.get_attribute('innerHTML')
+        soup = BeautifulSoup(html, 'html.parser')
+
+        week_elem = soup.findAll('tr')
+        week_elem = week_elem[1:]
+        # print(week.prettify())
+
+        weekly_income = []
+        for week in week_elem:
+            data = getSingleWeekSummary(week)
+            print(data)
+            weekly_income.append(data)
+
+        return weekly_income
+
     except:
         print("This movie does not have weekly information available")
         return "N/A -- checked on {}".format(datetime.datetime.now())
 
 
+
+def get_gen_info(driver, counter = 0):
+    if(counter == 10):
+        print("could not get any information :( --- skipping for now")
+        return "N/A -- checked on {}".format(datetime.datetime.now())
+
+    time.sleep(2)
+
+    try:
+        gen_info_table = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[3]/div[4]')
+        gen_html = gen_info_table.get_attribute('innerHTML')
+        gen_soup = BeautifulSoup(gen_html, 'html.parser')
+        # print(gen_soup.prettify())
+        text_arr = gen_soup.findAll(text=True)
+        # print(text_arr)
+        for i in range(len(text_arr)):
+            text_arr[i] = text_arr[i].strip()
+            # print(i, text_arr[i].strip())
+
+        gen_info = parseGeneralInfo(text_arr)
+
+        return gen_info
+    
+    except:
+        print("Maybe connection problem --- trying again < try :: {} >".format(counter))
+        driver.refresh()
+        return get_gen_info(driver, counter + 1)
+
+
+for year_num in range(2000,2016):
+    ##############################################################
+    year = str(year_num)
+    url = url_root + 'year/world/'+year+'/?grossesOption=totalGrosses'
+    print("\n\n############### YEAR {} ###############\n\n".format(year))
+    path = 'BoxOfficeMojo/'+year
+    makeDirectory(path)
+
+    ##############################################################
+
+    driver = initialize(url)
     table = driver.find_element_by_xpath('//*[@id="table"]/div/table[2]/tbody')
+
     html = table.get_attribute('innerHTML')
     soup = BeautifulSoup(html, 'html.parser')
+    movie_elem = soup.findAll('tr')
+    movie_elem = movie_elem[1:]
 
-    week_elem = soup.findAll('tr')
-    week_elem = week_elem[1:]
-    # print(week.prettify())
-
-    weekly_income = []
-    for week in week_elem:
-        data = getSingleWeekSummary(week)
+    summary_json = []
+    for movie in movie_elem:
+        data = getSingleMovieSummary(movie)
         print(data)
-        weekly_income.append(data)
+        summary_json.append(data)
 
-    return weekly_income
+    with open(path + '/0_summary.json', 'w') as f:
+        json.dump(summary_json, f)
+    print("saved summary")
 
-def get_gen_info(driver):
-    gen_info_table = driver.find_element_by_xpath('//*[@id="a-page"]/main/div/div[3]/div[4]')
-    gen_html = gen_info_table.get_attribute('innerHTML')
-    gen_soup = BeautifulSoup(gen_html, 'html.parser')
-    # print(gen_soup.prettify())
-    text_arr = gen_soup.findAll(text=True)
-    # print(text_arr)
-    for i in range(len(text_arr)):
-        text_arr[i] = text_arr[i].strip()
-        # print(i, text_arr[i].strip())
+    ###################################################################################
 
-    gen_info = parseGeneralInfo(text_arr)
+    # movie_data = {
+    #         "href": "/release/rl709199361/?ref_=bo_ydw_table_1",
+    #         "name": "the_avengers",
+    #         "world_wide": "$1,518,812,988",
+    #         "domestic": "$623,357,910",
+    #         "foreign": "$895,455,078"
+    #     }
 
-    return gen_info
+    # with open(path+"/0_summary.json") as f:
+    #     summary_json = json.load(f)
+
+    print("\n\n############### Scraping Movies of year {} ###############\n\n".format(year))
+
+    first = True
+
+    start_idx = 0
+    if year == "2018":
+        start_idx = 2400
+
+    for i in range(start_idx, len(summary_json)):
+
+        movie_data = summary_json[i]
+        print("\n\n############### {} ############### {}/{}\n\n".format(str(i+1) + "_" + movie_data['name'], i+1, len(summary_json)))
 
 
-for i in range(0, len(summary_json)):
+        url = url_root + movie_data['href']
+        if(driver): 
+            driver = initialize(url, driver)
+        else:
+            driver = initialize(url)
 
-    movie_data = summary_json[i]
-    print("\n\n############### {} ############### {}/{}\n\n".format(str(i+1) + "_" + movie_data['name'], i+1, len(summary_json)))
+        # if(first):
+        #     time.sleep(1)
+        #     actions = ActionChains(driver)
+        #     actions.move_by_offset(100,100)
+        #     actions.click().perform()
+        #     print('clicked')
+        #     driver.implicitly_wait(3)
 
+        #     first = False
 
-    url = url_root + movie_data['href']
-    if(driver): 
-        driver = initialize(url, driver)
-    else:
-        driver = initialize(url)
+        try:
+            clicked_domestic = click_domestic(driver)
+            if(clicked_domestic == False):
+                print("Error: Could not get Domestic tab -- skipping this movie for now")
+                continue
 
-    # if(first):
-    #     time.sleep(1)
-    #     actions = ActionChains(driver)
-    #     actions.move_by_offset(100,100)
-    #     actions.click().perform()
-    #     print('clicked')
-    #     driver.implicitly_wait(3)
+            gen_info = get_gen_info(driver)
+            weekly_income = get_weekly_income(driver)
 
-    #     first = False
+            movie_info = {
+                "General Info"  : gen_info,
+                "Weekly Income" : weekly_income 
+            }
 
-    weekly_income = get_weekly_income(driver)
-    gen_info = get_gen_info(driver)
+            print(movie_info)
 
-    movie_info = {
-        "General Info"  : gen_info,
-        "Weekly Income" : weekly_income 
-    }
-
-    print(movie_info)
-
-    with open(path + '/' + str(i+1) + "_" + movie_data['file_name'] +'.json', 'w') as f:
-        json.dump(movie_info, f)
+            with open(path + '/' + str(i+1) + "_" + movie_data['file_name'] +'.json', 'w') as f:
+                json.dump(movie_info, f)
+        
+        except:
+            print("Some unknown error occured -- skipping this movie")
